@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlightDeck - Airline Reservation System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+</head>
+<body>
+
+    <main class="container">
+        <header>
+            <hgroup>
+                <h1>Welcome to FlightDeck</h1>
+                <h2>Search and book your next flight</h2>
+            </hgroup>
+            <nav>
+                <ul>
+                    <li><strong id="user-info"></strong></li>
+                    <li id="auth-links">
+                        <a href="/register.html" role="button" class="secondary">Register</a>
+                        <a href="/login.html" role="button">Login</a>
+                    </li>
+                </ul>
+            </nav>
+        </header>
+
+        <form id="search-form">
+            <div class="grid">
+                <input type="text" id="from-input" placeholder="From (e.g., MAA)">
+                <input type="text" id="to-input" placeholder="To (e.g., DEL)">
+                <button type="submit">Search</button>
+            </div>
+        </form>
+
+        <figure>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Flight Number</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Departure</th>
+                        <th>Arrival</th>
+                        <th>Price</th>
+                        <th>Book</th>
+                    </tr>
+                </thead>
+                <tbody id="flights-table-body"></tbody>
+            </table>
+        </figure>
+    </main>
+
+    <script>
+        const userInfo = document.getElementById('user-info');
+        const authLinks = document.getElementById('auth-links');
+        const tableBody = document.getElementById('flights-table-body');
+        const searchForm = document.getElementById('search-form');
+        const fromInput = document.getElementById('from-input');
+        const toInput = document.getElementById('to-input');
+
+        function fetchAndDisplayFlights(url) {
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    tableBody.innerHTML = ''; 
+                    const isLoggedIn = userInfo.dataset.isLoggedIn === 'true';
+
+                    data.forEach(flight => {
+                        let row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${flight.flight_number}</td>
+                            <td>${flight.departure_airport_code}</td>
+                            <td>${flight.arrival_airport_code}</td>
+                            <td>${new Date(flight.departure_time).toLocaleString()}</td>
+                            <td>${new Date(flight.arrival_time).toLocaleString()}</td>
+                            <td>₹${flight.base_price}</td>
+                            <td>
+                                <button class="book-btn" data-flight-id="${flight.flight_id}" ${!isLoggedIn ? 'disabled' : ''}>
+                                    Book Now
+                                </button>
+                            </td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                })
+                .catch(error => console.error('Error fetching flights:', error));
+        }
+        
+        function logoutUser(event) {
+            event.preventDefault();
+            fetch('/api/logout', { method: 'POST' })
+                .then(() => window.location.reload());
+        }
+
+        window.onload = function() {
+            fetch('/api/session_status')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.logged_in) {
+                        userInfo.textContent = `Welcome, ${data.name}!`; 
+                        userInfo.dataset.isLoggedIn = 'true';           
+                        authLinks.innerHTML = `
+                            <a href="/my_bookings.html">My Bookings</a> | 
+                            <a href="#" id="logout-link" role="button" class="contrast">Logout</a>
+                        `;
+                        document.getElementById('logout-link').addEventListener('click', logoutUser);
+                    } else {
+                        userInfo.dataset.isLoggedIn = 'false';          
+                    }
+                    fetchAndDisplayFlights('/api/flights');
+                });
+        };
+
+        tableBody.addEventListener('click', function(event) {
+            if (event.target && event.target.classList.contains('book-btn')) {
+                const flightId = event.target.dataset.flightId;
+                fetch('/api/bookings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ flight_id: flightId })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(`Booking successful! Your booking ID is ${data.booking_id}`);
+                    } else {
+                        alert(`Error: ${data.error}`);
+                    }
+                });
+            }
+        });
+        
+        searchForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const from = fromInput.value.toUpperCase();
+            const to = toInput.value.toUpperCase();
+
+            let apiUrl = '/api/flights?';
+            if (from) apiUrl += `from=${from}&`;
+            if (to) apiUrl += `to=${to}`;
+            
+            fetchAndDisplayFlights(apiUrl);
+        });
+    </script>
+</body>
+</html>

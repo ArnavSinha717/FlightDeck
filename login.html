@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlightDeck - Airline Reservation System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        /* Add a little padding to the body */
+        body { padding: 2em; }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <hgroup>
+            <h2>Login to Your Account</h2>
+            <h3>Enter your credentials to access the system</h3>
+        </hgroup>
+        
+        <form id="login-form">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" name="email" required autocomplete="email">
+            
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required autocomplete="current-password">
+            
+            <button type="submit">Login</button>
+        </form>
+        
+        <div id="message-area" style="text-align: center; margin-top: 1em;"></div>
+        <a href="/">Back to Flights</a>
+    </main>
+
+    <script>
+        const loginForm = document.getElementById('login-form');
+        const messageArea = document.getElementById('message-area');
+
+        loginForm.addEventListener('submit', function(event) {
+            event.preventDefault(); // Stop the default form submission
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            // Send the login data to the backend API
+            fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    messageArea.textContent = 'Login successful! Redirecting...';
+                    messageArea.style.color = 'green';
+                    // Redirect to the main page after a successful login
+                    setTimeout(() => window.location.href = '/', 1000); // Wait 1 second before redirecting
+                } else {
+                    messageArea.textContent = 'Error: ' + data.error;
+                    messageArea.style.color = 'red';
+                }
+            })
+            .catch(error => {
+                messageArea.textContent = 'An unexpected error occurred.';
+                console.error('Login error:', error);
+            });
+        });
+    </script>
+</body>
+</html>

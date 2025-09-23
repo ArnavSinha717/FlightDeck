@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FlightDeck - Airline Reservation System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style> body { padding: 2em; } </style>
+</head>
+<body>
+    <main class="container">
+        <hgroup>
+            <h2>Register New Account</h2>
+            <h3>Create an account to book flights</h3>
+        </hgroup>
+        <form id="register-form">
+            <label for="name">Full Name</label>
+            <input type="text" id="name" name="name" required>
+            
+            <label for="email">Email Address</label>
+            <input type="email" id="email" name="email" required>
+            
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required>
+            
+            <button type="submit">Register</button>
+        </form>
+        <div id="message-area" style="text-align: center; margin-top: 1em;"></div>
+        <a href="/">Back to Flights</a>
+    </main>
+    <script>
+        const registerForm = document.getElementById('register-form');
+        const messageArea = document.getElementById('message-area');
+
+        registerForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    messageArea.textContent = 'Registration successful! Redirecting to login...';
+                    messageArea.style.color = 'green';
+                    setTimeout(() => window.location.href = '/login.html', 2000);
+                } else {
+                    messageArea.textContent = 'Error: ' + data.error;
+                    messageArea.style.color = 'red';
+                }
+            })
+            .catch(error => {
+                messageArea.textContent = 'An unexpected error occurred.';
+                console.error('Registration error:', error);
+            });
+        });
+    </script>
+</body>
+</html>
