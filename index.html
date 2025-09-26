@@ -4,51 +4,113 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FlightDeck - Airline Reservation System</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="theme.js"></script>
 </head>
 <body>
 
-    <main class="container">
-        <header>
-            <hgroup>
-                <h1>Welcome to FlightDeck</h1>
-                <h2>Search and book your next flight</h2>
-            </hgroup>
-            <nav>
-                <ul>
-                    <li><strong id="user-info"></strong></li>
-                    <li id="auth-links">
-                        <a href="/register.html" role="button" class="secondary">Register</a>
-                        <a href="/login.html" role="button">Login</a>
-                    </li>
-                </ul>
-            </nav>
-        </header>
-
-        <form id="search-form">
-            <div class="grid">
-                <input type="text" id="from-input" placeholder="From (e.g., MAA)">
-                <input type="text" id="to-input" placeholder="To (e.g., DEL)">
-                <button type="submit">Search</button>
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <i class="fas fa-plane"></i>
+            FlightDeck
+        </a>
+        <div class="navbar-links">
+            <span id="user-info"></span>
+            <span id="auth-links">
+                <a href="/register.html" class="btn btn-outline">Register</a>
+                <a href="/login.html" class="btn btn-primary">Login</a>
+            </span>
+            <div class="theme-toggle" title="Toggle theme (Ctrl+Shift+L)">
+                <div class="theme-toggle-slider">
+                    <i class="fas fa-moon"></i>
+                </div>
             </div>
-        </form>
+        </div>
+    </nav>
 
-        <figure>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Flight Number</th>
-                        <th>From</th>
-                        <th>To</th>
-                        <th>Departure</th>
-                        <th>Arrival</th>
-                        <th>Price</th>
-                        <th>Book</th>
-                    </tr>
-                </thead>
-                <tbody id="flights-table-body"></tbody>
-            </table>
-        </figure>
+    <div class="hero-section">
+        <h1>Welcome to FlightDeck</h1>
+        <p class="subtitle">Your journey begins here. Search and book flights with ease.</p>
+    </div>
+
+    <main class="main-container">
+
+        <div class="search-card">
+            <form id="search-form">
+                <div class="search-grid">
+                    <div class="form-group">
+                        <label for="from-input">From</label>
+                        <input type="text" id="from-input" class="form-control" placeholder="Airport Code (e.g., MAA)">
+                    </div>
+                    <div class="form-group">
+                        <label for="to-input">To</label>
+                        <input type="text" id="to-input" class="form-control" placeholder="Airport Code (e.g., DEL)">
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i>
+                        Search Flights
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon blue">
+                    <i class="fas fa-plane-departure"></i>
+                </div>
+                <div class="stat-details">
+                    <h4>Available Flights</h4>
+                    <p id="total-flights">0</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+                <div class="stat-details">
+                    <h4>Starting From</h4>
+                    <p id="min-price">₹0</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon purple">
+                    <i class="fas fa-route"></i>
+                </div>
+                <div class="stat-details">
+                    <h4>Routes Available</h4>
+                    <p id="routes-count">0</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flights-table">
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Flight Number</th>
+                            <th>From</th>
+                            <th>To</th>
+                            <th>Departure</th>
+                            <th>Arrival</th>
+                            <th>Price</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="flights-table-body">
+                        <tr>
+                            <td colspan="7" style="text-align: center;">
+                                <div class="loading-spinner"></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="flights-cards-container"></div>
     </main>
 
     <script>
@@ -66,23 +128,76 @@
                     tableBody.innerHTML = ''; 
                     const isLoggedIn = userInfo.dataset.isLoggedIn === 'true';
 
+                    if (data.length === 0) {
+                        tableBody.innerHTML = `
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 2rem;">
+                                    <div class="empty-state">
+                                        <div class="empty-state-icon">✈️</div>
+                                        <h3>No flights found</h3>
+                                        <p>Try adjusting your search criteria</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                        document.getElementById('flights-cards-container').innerHTML = '';
+                        updateStats(data);
+                        return;
+                    }
+
+                    const cardsContainer = document.getElementById('flights-cards-container');
+                    cardsContainer.innerHTML = '';
+
                     data.forEach(flight => {
                         let row = document.createElement('tr');
                         row.innerHTML = `
                             <td>${flight.flight_number}</td>
                             <td>${flight.departure_airport_code}</td>
                             <td>${flight.arrival_airport_code}</td>
-                            <td>${new Date(flight.departure_time).toLocaleString()}</td>
-                            <td>${new Date(flight.arrival_time).toLocaleString()}</td>
-                            <td>₹${flight.base_price}</td>
+                            <td>${formatDateTime(flight.departure_time)}</td>
+                            <td>${formatDateTime(flight.arrival_time)}</td>
+                            <td class="flight-price">₹${flight.base_price.toLocaleString()}</td>
                             <td>
-                                <button class="book-btn" data-flight-id="${flight.flight_id}" ${!isLoggedIn ? 'disabled' : ''}>
-                                    Book Now
+                                <button class="btn ${isLoggedIn ? 'btn-primary' : 'btn-secondary'} btn-sm book-btn"
+                                        data-flight-id="${flight.flight_id}"
+                                        ${!isLoggedIn ? 'disabled' : ''}>
+                                    <i class="fas fa-ticket-alt"></i>
+                                    ${isLoggedIn ? 'Book Now' : 'Login to Book'}
                                 </button>
                             </td>
                         `;
                         tableBody.appendChild(row);
+
+                        // Create card for mobile view
+                        let card = document.createElement('div');
+                        card.className = 'flight-card';
+                        card.innerHTML = `
+                            <div class="flight-header">
+                                <span class="flight-number">${flight.flight_number}</span>
+                                <span class="flight-price">₹${flight.base_price.toLocaleString()}</span>
+                            </div>
+                            <div class="flight-route">
+                                <div>
+                                    <div class="airport-code">${flight.departure_airport_code}</div>
+                                    <div>${formatDateTime(flight.departure_time)}</div>
+                                </div>
+                                <i class="fas fa-arrow-right flight-arrow"></i>
+                                <div>
+                                    <div class="airport-code">${flight.arrival_airport_code}</div>
+                                    <div>${formatDateTime(flight.arrival_time)}</div>
+                                </div>
+                            </div>
+                            <button class="btn ${isLoggedIn ? 'btn-primary' : 'btn-secondary'} book-btn"
+                                    data-flight-id="${flight.flight_id}"
+                                    ${!isLoggedIn ? 'disabled' : ''} style="width: 100%;">
+                                <i class="fas fa-ticket-alt"></i>
+                                ${isLoggedIn ? 'Book Now' : 'Login to Book'}
+                            </button>
+                        `;
+                        cardsContainer.appendChild(card);
                     });
+
+                    updateStats(data);
                 })
                 .catch(error => console.error('Error fetching flights:', error));
         }
@@ -98,11 +213,15 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.logged_in) {
-                        userInfo.textContent = `Welcome, ${data.name}!`; 
-                        userInfo.dataset.isLoggedIn = 'true';           
+                        userInfo.innerHTML = `<i class="fas fa-user-circle"></i> Welcome, ${data.name}!`;
+                        userInfo.dataset.isLoggedIn = 'true';
                         authLinks.innerHTML = `
-                            <a href="/my_bookings.html">My Bookings</a> | 
-                            <a href="#" id="logout-link" role="button" class="contrast">Logout</a>
+                            <a href="/my_bookings.html" class="btn btn-outline">
+                                <i class="fas fa-list"></i> My Bookings
+                            </a>
+                            <a href="#" id="logout-link" class="btn btn-danger">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
                         `;
                         document.getElementById('logout-link').addEventListener('click', logoutUser);
                     } else {
@@ -123,9 +242,12 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        alert(`Booking successful! Your booking ID is ${data.booking_id}`);
+                        showNotification(`Booking successful! Your booking ID is ${data.booking_id}`, 'success');
+                        setTimeout(() => {
+                            window.location.href = '/my_bookings.html';
+                        }, 2000);
                     } else {
-                        alert(`Error: ${data.error}`);
+                        showNotification(`Error: ${data.error}`, 'error');
                     }
                 });
             }
@@ -142,6 +264,79 @@
             
             fetchAndDisplayFlights(apiUrl);
         });
+
+        function formatDateTime(dateTimeString) {
+            const date = new Date(dateTimeString);
+            const options = {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+            return date.toLocaleString('en-US', options);
+        }
+
+        function updateStats(flights) {
+            document.getElementById('total-flights').textContent = flights.length;
+
+            if (flights.length > 0) {
+                const prices = flights.map(f => f.base_price);
+                const minPrice = Math.min(...prices);
+                document.getElementById('min-price').textContent = `₹${minPrice.toLocaleString()}`;
+
+                const routes = new Set(flights.map(f => `${f.departure_airport_code}-${f.arrival_airport_code}`));
+                document.getElementById('routes-count').textContent = routes.size;
+            } else {
+                document.getElementById('min-price').textContent = '₹0';
+                document.getElementById('routes-count').textContent = '0';
+            }
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+                ${message}
+            `;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 1rem 1.5rem;
+                background: ${type === 'success' ? '#10b981' : '#ef4444'};
+                color: white;
+                border-radius: 8px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                z-index: 1000;
+                animation: slideIn 0.3s ease;
+            `;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
     </script>
+
+    <style>
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        @keyframes slideOut {
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+    </style>
 </body>
 </html>

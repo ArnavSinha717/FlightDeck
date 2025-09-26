@@ -2,31 +2,59 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FlightDeck - Airline Reservation System</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
-    <style> body { padding: 2em; } </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - FlightDeck</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="theme.js"></script>
 </head>
 <body>
-    <main class="container">
-        <hgroup>
-            <h2>Register New Account</h2>
-            <h3>Create an account to book flights</h3>
-        </hgroup>
-        <form id="register-form">
-            <label for="name">Full Name</label>
-            <input type="text" id="name" name="name" required>
-            
-            <label for="email">Email Address</label>
-            <input type="email" id="email" name="email" required>
-            
-            <label for="password">Password</label>
-            <input type="password" id="password" name="password" required>
-            
-            <button type="submit">Register</button>
-        </form>
-        <div id="message-area" style="text-align: center; margin-top: 1em;"></div>
-        <a href="/">Back to Flights</a>
-    </main>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div style="text-align: center; margin-bottom: 2rem; position: relative;">
+                <i class="fas fa-user-plus" style="font-size: 3rem; background: linear-gradient(135deg, var(--primary-color), var(--accent-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"></i>
+                <div class="theme-toggle" style="position: absolute; top: -10px; right: -10px;" title="Toggle theme">
+                    <div class="theme-toggle-slider">
+                        <i class="fas fa-moon"></i>
+                    </div>
+                </div>
+            </div>
+            <h2>Create Account</h2>
+            <h3>Join FlightDeck to start booking flights</h3>
+
+            <form id="register-form">
+                <div class="form-input">
+                    <label for="name" class="form-group">Full Name</label>
+                    <input type="text" id="name" name="name" class="form-control" required placeholder="Enter your full name">
+                </div>
+
+                <div class="form-input">
+                    <label for="email" class="form-group">Email Address</label>
+                    <input type="email" id="email" name="email" class="form-control" required placeholder="Enter your email">
+                </div>
+
+                <div class="form-input">
+                    <label for="password" class="form-group">Password</label>
+                    <input type="password" id="password" name="password" class="form-control" required placeholder="Create a strong password" minlength="6">
+                    <small style="color: var(--text-secondary);">Minimum 6 characters</small>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                    <i class="fas fa-user-plus"></i>
+                    Create Account
+                </button>
+            </form>
+
+            <div id="message-area"></div>
+
+            <div style="margin-top: 2rem; text-align: center;">
+                <p style="color: var(--text-secondary);">Already have an account? <a href="/login.html" style="color: var(--primary-color); text-decoration: none; font-weight: 600;">Sign in here</a></p>
+                <a href="/" style="color: var(--text-secondary); text-decoration: none;">
+                    <i class="fas fa-arrow-left"></i> Back to Flights
+                </a>
+            </div>
+        </div>
+    </div>
     <script>
         const registerForm = document.getElementById('register-form');
         const messageArea = document.getElementById('message-area');
@@ -46,16 +74,14 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    messageArea.textContent = 'Registration successful! Redirecting to login...';
-                    messageArea.style.color = 'green';
+                    messageArea.innerHTML = '<div class="message-area message-success"><i class="fas fa-check-circle"></i> Registration successful! Redirecting to login...</div>';
                     setTimeout(() => window.location.href = '/login.html', 2000);
                 } else {
-                    messageArea.textContent = 'Error: ' + data.error;
-                    messageArea.style.color = 'red';
+                    messageArea.innerHTML = `<div class="message-area message-error"><i class="fas fa-exclamation-circle"></i> ${data.error}</div>`;
                 }
             })
             .catch(error => {
-                messageArea.textContent = 'An unexpected error occurred.';
+                messageArea.innerHTML = '<div class="message-area message-error"><i class="fas fa-exclamation-circle"></i> An unexpected error occurred.</div>';
                 console.error('Registration error:', error);
             });
         });
