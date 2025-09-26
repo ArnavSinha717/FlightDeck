@@ -15,8 +15,17 @@
             FlightDeck
         </a>
         <div class="navbar-links">
-            <a href="/" class="btn btn-outline">
-                <i class="fas fa-arrow-left"></i> Back to Flights
+            <span id="user-info" style="display: flex; padding: 0.5rem 1rem; background: var(--elevated-color); border-radius: 25px;">
+                <i class="fas fa-user-circle" style="margin-right: 0.5rem; color: var(--primary-color);"></i>
+                <span id="user-name">User</span>
+            </span>
+            <a href="/" class="nav-btn nav-btn-bookings">
+                <i class="fas fa-arrow-left"></i>
+                <span>Back to Flights</span>
+            </a>
+            <a href="#" id="logout-link" class="nav-btn nav-btn-logout">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
             </a>
             <div class="theme-toggle" title="Toggle theme (Ctrl+Shift+L)">
                 <div class="theme-toggle-slider">
@@ -63,6 +72,25 @@
 
     <script>
         window.onload = function() {
+            // Get user session first
+            fetch('/api/session_status')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.logged_in) {
+                        document.getElementById('user-name').textContent = data.name;
+                    } else {
+                        window.location.href = '/login.html';
+                    }
+                });
+
+            // Add logout functionality
+            document.getElementById('logout-link').addEventListener('click', function(e) {
+                e.preventDefault();
+                fetch('/api/logout', { method: 'POST' })
+                    .then(() => window.location.href = '/');
+            });
+
+            // Fetch bookings
             fetch('/api/my_bookings')
                 .then(response => {
                     if (!response.ok) {

@@ -16,10 +16,16 @@
             FlightDeck
         </a>
         <div class="navbar-links">
-            <span id="user-info"></span>
+            <span id="user-info" style="display: none;"></span>
             <span id="auth-links">
-                <a href="/register.html" class="btn btn-outline">Register</a>
-                <a href="/login.html" class="btn btn-primary">Login</a>
+                <a href="/register.html" class="nav-btn nav-btn-register">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Sign Up</span>
+                </a>
+                <a href="/login.html" class="nav-btn nav-btn-login">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Login</span>
+                </a>
             </span>
             <div class="theme-toggle" title="Toggle theme (Ctrl+Shift+L)">
                 <div class="theme-toggle-slider">
@@ -53,6 +59,22 @@
                     </button>
                 </div>
             </form>
+        </div>
+
+        <div class="sort-controls">
+            <label>Sort by:</label>
+            <button class="btn-sort" data-sort="price-asc">
+                <i class="fas fa-sort-amount-down"></i> Price: Low to High
+            </button>
+            <button class="btn-sort" data-sort="price-desc">
+                <i class="fas fa-sort-amount-up"></i> Price: High to Low
+            </button>
+            <button class="btn-sort" data-sort="time">
+                <i class="fas fa-clock"></i> Departure Time
+            </button>
+            <button class="btn-sort" data-sort="duration">
+                <i class="fas fa-hourglass-half"></i> Duration
+            </button>
         </div>
 
         <div class="stats-grid">
@@ -93,9 +115,9 @@
                             <th>Flight Number</th>
                             <th>From</th>
                             <th>To</th>
-                            <th>Departure</th>
-                            <th>Arrival</th>
-                            <th>Price</th>
+                            <th class="sortable" data-column="departure">Departure <i class="fas fa-sort"></i></th>
+                            <th class="sortable" data-column="arrival">Arrival <i class="fas fa-sort"></i></th>
+                            <th class="sortable" data-column="price">Price <i class="fas fa-sort"></i></th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -120,13 +142,21 @@
         const searchForm = document.getElementById('search-form');
         const fromInput = document.getElementById('from-input');
         const toInput = document.getElementById('to-input');
+        let currentFlights = []; // Store current flights for sorting
 
         function fetchAndDisplayFlights(url) {
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
-                    tableBody.innerHTML = ''; 
-                    const isLoggedIn = userInfo.dataset.isLoggedIn === 'true';
+                    currentFlights = data; // Store for sorting
+                    displayFlights(data);
+                })
+                .catch(error => console.error('Error fetching flights:', error));
+        }
+
+        function displayFlights(data) {
+            tableBody.innerHTML = '';
+            const isLoggedIn = userInfo.dataset.isLoggedIn === 'true';
 
                     if (data.length === 0) {
                         tableBody.innerHTML = `
@@ -171,6 +201,13 @@
                         // Create card for mobile view
                         let card = document.createElement('div');
                         card.className = 'flight-card';
+
+                        // Calculate duration
+                        const duration = new Date(flight.arrival_time) - new Date(flight.departure_time);
+                        const hours = Math.floor(duration / (1000 * 60 * 60));
+                        const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
+                        const durationText = `${hours}h ${minutes}m`;
+
                         card.innerHTML = `
                             <div class="flight-header">
                                 <span class="flight-number">${flight.flight_number}</span>
@@ -181,7 +218,10 @@
                                     <div class="airport-code">${flight.departure_airport_code}</div>
                                     <div>${formatDateTime(flight.departure_time)}</div>
                                 </div>
-                                <i class="fas fa-arrow-right flight-arrow"></i>
+                                <div style="text-align: center; flex: 0 0 auto;">
+                                    <i class="fas fa-arrow-right flight-arrow"></i>
+                                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">${durationText}</div>
+                                </div>
                                 <div>
                                     <div class="airport-code">${flight.arrival_airport_code}</div>
                                     <div>${formatDateTime(flight.arrival_time)}</div>
@@ -197,9 +237,41 @@
                         cardsContainer.appendChild(card);
                     });
 
-                    updateStats(data);
-                })
-                .catch(error => console.error('Error fetching flights:', error));
+            updateStats(data);
+        }
+
+        function sortFlights(sortType) {
+            let sorted = [...currentFlights];
+
+            switch(sortType) {
+                case 'price-asc':
+                    sorted.sort((a, b) => a.base_price - b.base_price);
+                    break;
+                case 'price-desc':
+                    sorted.sort((a, b) => b.base_price - a.base_price);
+                    break;
+                case 'time':
+                    sorted.sort((a, b) => new Date(a.departure_time) - new Date(b.departure_time));
+                    break;
+                case 'duration':
+                    sorted.sort((a, b) => {
+                        const durationA = new Date(a.arrival_time) - new Date(a.departure_time);
+                        const durationB = new Date(b.arrival_time) - new Date(b.departure_time);
+                        return durationA - durationB;
+                    });
+                    break;
+                case 'departure':
+                    sorted.sort((a, b) => new Date(a.departure_time) - new Date(b.departure_time));
+                    break;
+                case 'arrival':
+                    sorted.sort((a, b) => new Date(a.arrival_time) - new Date(b.arrival_time));
+                    break;
+                case 'price':
+                    sorted.sort((a, b) => a.base_price - b.base_price);
+                    break;
+            }
+
+            displayFlights(sorted);
         }
         
         function logoutUser(event) {
@@ -213,19 +285,23 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.logged_in) {
-                        userInfo.innerHTML = `<i class="fas fa-user-circle"></i> Welcome, ${data.name}!`;
+                        userInfo.innerHTML = `<i class="fas fa-user-circle"></i> <span>${data.name}</span>`;
+                        userInfo.style.display = 'flex';
                         userInfo.dataset.isLoggedIn = 'true';
                         authLinks.innerHTML = `
-                            <a href="/my_bookings.html" class="btn btn-outline">
-                                <i class="fas fa-list"></i> My Bookings
+                            <a href="/my_bookings.html" class="nav-btn nav-btn-bookings">
+                                <i class="fas fa-ticket-alt"></i>
+                                <span>My Bookings</span>
                             </a>
-                            <a href="#" id="logout-link" class="btn btn-danger">
-                                <i class="fas fa-sign-out-alt"></i> Logout
+                            <a href="#" id="logout-link" class="nav-btn nav-btn-logout">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>Logout</span>
                             </a>
                         `;
                         document.getElementById('logout-link').addEventListener('click', logoutUser);
                     } else {
-                        userInfo.dataset.isLoggedIn = 'false';          
+                        userInfo.style.display = 'none';
+                        userInfo.dataset.isLoggedIn = 'false';
                     }
                     fetchAndDisplayFlights('/api/flights');
                 });
@@ -263,6 +339,43 @@
             if (to) apiUrl += `to=${to}`;
             
             fetchAndDisplayFlights(apiUrl);
+        });
+
+        // Add sort button listeners
+        document.querySelectorAll('.btn-sort').forEach(button => {
+            button.addEventListener('click', function() {
+                // Update active state
+                document.querySelectorAll('.btn-sort').forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+
+                const sortType = this.dataset.sort;
+                sortFlights(sortType);
+            });
+        });
+
+        // Add table header sorting
+        document.querySelectorAll('.sortable').forEach(header => {
+            header.addEventListener('click', function() {
+                const column = this.dataset.column;
+
+                // Toggle sort direction
+                const currentSort = this.dataset.sort || 'asc';
+                const newSort = currentSort === 'asc' ? 'desc' : 'asc';
+                this.dataset.sort = newSort;
+
+                // Update sort icons
+                document.querySelectorAll('.sortable i').forEach(icon => {
+                    icon.className = 'fas fa-sort';
+                });
+                this.querySelector('i').className = newSort === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+
+                // Sort based on column and direction
+                if (column === 'price') {
+                    sortFlights(newSort === 'asc' ? 'price-asc' : 'price-desc');
+                } else {
+                    sortFlights(column);
+                }
+            });
         });
 
         function formatDateTime(dateTimeString) {

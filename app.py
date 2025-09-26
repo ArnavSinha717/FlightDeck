@@ -3,6 +3,8 @@ from flask_bcrypt import Bcrypt
 import mysql.connector
 from mysql.connector import Error
 import os
+import webbrowser
+from threading import Timer
 
 app = Flask(__name__)
 bcrypt = Bcrypt(app)
@@ -28,6 +30,14 @@ def serve_register():
 @app.route('/login.html')
 def serve_login():
     return send_from_directory('.', 'login.html')
+
+@app.route('/styles.css')
+def serve_styles():
+    return send_from_directory('.', 'styles.css')
+
+@app.route('/theme.js')
+def serve_theme():
+    return send_from_directory('.', 'theme.js')
 
 @app.route('/api/register', methods=['POST'])
 def register_user():
@@ -215,5 +225,21 @@ def my_bookings():
         if 'conn' in locals() and conn.is_connected():
             conn.close()
 
+def open_browser():
+    webbrowser.open('http://localhost:5000')
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    print("\n" + "="*60)
+    print("🛫 FlightDeck - Airline Reservation System")
+    print("="*60)
+    print("Starting server...")
+    print("\nThe application will open in your browser automatically.")
+    print("If it doesn't, navigate to: http://localhost:5000")
+    print("\nPress CTRL+C to stop the server")
+    print("="*60 + "\n")
+
+    # Open browser after 1.5 seconds
+    Timer(1.5, open_browser).start()
+
+    # Run Flask app
+    app.run(debug=True, use_reloader=False)
